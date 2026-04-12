@@ -1,28 +1,21 @@
-resource "aws_vpc" "dev-vpc" {
-  cidr_block = "10.0.0.0/16"
+variable "vpc_cidr_block" {}
+variable "subnet_cidr_block" {}
+variable "avai_zone" {}
+variable "env_prefix" {}
+
+resource "aws_vpc" "myapp-vpc" {
+  cidr_block = var.vpc_cidr_block
   tags = {
-    Name = "dev"
+    Name = "${var.env_prefix}-vpc"
   }
 }
 
-resource "aws_subnet" "dev-subnet-1" {
-  vpc_id            = aws_vpc.dev-vpc.id
-  cidr_block        = "10.0.10.0/24"
-  availability_zone = "ap-southeast-1a"
+resource "aws_subnet" "myapp-subnet-1" {
+  vpc_id            = aws_vpc.myapp-vpc.id
+  cidr_block        = var.subnet_cidr_block
+  availability_zone = var.avai_zone
   tags = {
-    Name = "subnet-1-dev"
+    Name = "${var.env_prefix}-subnet-1"
   }
 }
 
-data "aws_vpc" "existing-vpc" {
-  default = true
-}
-
-resource "aws_subnet" "dev-subnet-2" {
-  vpc_id            = data.aws_vpc.existing-vpc.id
-  cidr_block        = "172.31.48.0/24"
-  availability_zone = "ap-southeast-1a"
-  tags = {
-    Name = "subnet-defualt"
-  }
-}
