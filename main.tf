@@ -4,7 +4,8 @@ variable "avai_zone" {}
 variable "env_prefix" {}
 variable "my_ip" {}
 variable "instance_type" {}
-variable "pubilc_key_location" {}
+variable "public_key_location" {}
+variable "ssh_key_private" {}
 
 resource "aws_vpc" "myapp-vpc" {
   cidr_block = var.vpc_cidr_block
@@ -48,7 +49,7 @@ resource "aws_default_security_group" "default-sg" {
     from_port   = 22
     to_port     = 22
     protocol    = "TCP"
-    cidr_blocks = [var.my_ip]
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   ingress {
@@ -73,7 +74,7 @@ resource "aws_default_security_group" "default-sg" {
 
 resource "aws_key_pair" "ssh-key" {
   key_name   = "nn-server-key"
-  public_key = file(var.pubilc_key_location)
+  public_key = file(var.public_key_location)
 }
 
 data "aws_ami" "latest-amazon-linux-image" {
@@ -115,13 +116,18 @@ resource "aws_instance" "myapp-server" {
   associate_public_ip_address = true
   key_name                    = aws_key_pair.ssh-key.key_name
 
-  user_data = file("entry-script.sh")
-
-  user_data_replace_on_change = true
-
   tags = {
     Name : "${var.env_prefix}-server"
   }
 }
 
+resource "null_resource" "configure_server" {
+  triggers = {
+    trigger = aws_instance.myapp-server.public_ip
+  }
+  provisioner "local-exec" {
+    working_dir = "/Users/jeepek/ansible-project"
+    command = "ansible-playbook --inventory ${aws_instance.myapp-server.public_ip}, --private-key ${var.ssh_key_private} -u ec2-user deploy-docker-new-user.yaml"
+  }
+}
 

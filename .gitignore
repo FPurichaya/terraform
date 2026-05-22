@@ -19,6 +19,8 @@ crash.*.log
 *.tfvars
 *.tfvars.json
 
+.idea/
+
 # Ignore override files
 override.tf
 override.tf.json
