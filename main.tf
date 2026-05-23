@@ -3,12 +3,13 @@ variable "subnet_cidr_block" {}
 variable "avai_zone" {}
 variable "env_prefix" {}
 variable "my_ip" {}
+variable "image_name" {}
 variable "instance_type" {}
 variable "public_key_location" {}
-variable "ssh_key_private" {}
 
 resource "aws_vpc" "myapp-vpc" {
   cidr_block = var.vpc_cidr_block
+  enable_dns_hostnames = true
   tags = {
     Name = "${var.env_prefix}-vpc"
   }
@@ -83,7 +84,7 @@ data "aws_ami" "latest-amazon-linux-image" {
 
   filter {
     name   = "name"
-    values = ["al2023-ami-2023.*-kernel-6.1-x86_64"]
+    values = [var.image_name]
   }
 
   filter {
@@ -121,13 +122,51 @@ resource "aws_instance" "myapp-server" {
   }
 }
 
-resource "null_resource" "configure_server" {
-  triggers = {
-    trigger = aws_instance.myapp-server.public_ip
+resource "aws_instance" "myapp-server-two" {
+  ami           = data.aws_ami.latest-amazon-linux-image.id
+  instance_type = var.instance_type
+
+  subnet_id              = aws_subnet.myapp-subnet-1.id
+  vpc_security_group_ids = [aws_default_security_group.default-sg.id]
+  availability_zone      = var.avai_zone
+
+  associate_public_ip_address = true
+  key_name                    = aws_key_pair.ssh-key.key_name
+
+  tags = {
+    Name : "prod-server"
   }
-  provisioner "local-exec" {
-    working_dir = "/Users/jeepek/ansible-project"
-    command = "ansible-playbook --inventory ${aws_instance.myapp-server.public_ip}, --private-key ${var.ssh_key_private} -u ec2-user deploy-docker-new-user.yaml"
+}
+
+resource "aws_instance" "myapp-server-three" {
+  ami           = data.aws_ami.latest-amazon-linux-image.id
+  instance_type = "t2.small"
+
+  subnet_id              = aws_subnet.myapp-subnet-1.id
+  vpc_security_group_ids = [aws_default_security_group.default-sg.id]
+  availability_zone      = var.avai_zone
+
+  associate_public_ip_address = true
+  key_name                    = aws_key_pair.ssh-key.key_name
+
+  tags = {
+    Name : "${var.env_prefix}-server-three"
+  }
+}
+
+resource "aws_instance" "myapp-server-four" {
+  ami           = data.aws_ami.latest-amazon-linux-image.id
+  instance_type = "t2.small"
+
+  subnet_id              = aws_subnet.myapp-subnet-1.id
+  vpc_security_group_ids = [aws_default_security_group.default-sg.id]
+  availability_zone      = var.avai_zone
+
+  associate_public_ip_address = true
+  key_name                    = aws_key_pair.ssh-key.key_name
+
+  tags = {
+    Name : "prod-server"
   }
 }
 
